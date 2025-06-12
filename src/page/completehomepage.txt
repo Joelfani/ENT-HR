@@ -1,0 +1,898 @@
+<template>
+        <div class="dashboard">
+        <!-- Navigation Bar -->
+        <div class="container-fluid">
+        <div class="row">
+        <div class="brand-place centre">
+                <div class="enterprise_logo"></div>
+        </div>
+        <nav class="mynavbar">
+                <div class="title-head-container centre">
+                <span class="nav-header-title">{{ titre_contenu }}</span>
+                </div>
+                <div class="container-deconnexion">
+                <span>Utilisateur : {{ user }}</span>
+                <button class="btn btn-dark" @click="logout">Déconnexion</button>
+                </div>
+        </nav>
+        </div>
+        </div>
+
+        <!-- Sidebar Navigation -->
+        <div class="myBarNav">
+        <div id="mySidenav" class="sidenav">
+        <div class="menu_side">
+                <nav>
+                <ul id="menu">
+                <NavMenu
+                v-for="menu in menuItems"
+                :key="menu.title"
+                :menu="menu"
+                :selected="selectedMenu"
+                @select="handleMenuSelect"
+                />
+                </ul>
+                </nav>
+        </div>
+        </div>
+        </div>
+
+        <!-- Modals -->
+        <Modal
+        v-for="modal in modals"
+        :key="modal.id"
+        :modal="modal"
+        :promotions="modal.isCandidate ? liste_prom_candidat : promotion"
+        :selected-prom="modal.isCandidate ? sprom_can : prom"
+        @confirm="handleModalConfirm"
+        @add-year="addContestYear"
+        @delete-year="deleteContestYear"
+        />
+
+        <!-- Main Content -->
+        <div id="main">
+        <div class="first-view" v-if="vide"></div>
+        <div class="view_board container-fluid" v-show="contenu">
+        <component
+                :is="currentComponent"
+                :prom_name="prom_name"
+                :prom_name_can="prom_name_can"
+        ></component>
+
+        <!-- Tableau de Bord Sections -->
+        <TableauDeBord
+                v-if="div_tdb_can"
+                type="candidats"
+                :title="`TABLEAU DE BORD POUR LES CANDIDATS ${tdb_prom_can}`"
+                :stats="candidateStats"
+                :filiere="fil_can"
+                :filieres="fils"
+                @update-filiere="updateCandidateFiliere"
+        />
+        <TableauDeBord
+                v-if="div_tdb_ele"
+                type="eleves"
+                :title="`TABLEAU DE BORD POUR LES ELEVES ${tdb_prom}`"
+                :stats="studentStats"
+                :filiere="fil_ele"
+                :filieres="fils"
+                @update-filiere="updateStudentFiliere"
+        />
+        <TableauDeBord
+                v-if="div_tdb_fin"
+                type="finance"
+                :title="`TABLEAU DE BORD DES FINANCE POUR LES ELEVES ${tdb_prom}`"
+                :stats="financeStats"
+        />
+        </div>
+        </div>-->
+        <router-view />
+        </div>
+</template>
+
+<script>
+import { chemin } from '/public/ipvariable.js';
+import axios from 'axios';
+import Chart from 'chart.js/auto';
+
+// Hypothetical components (to be implemented separately)
+import NavMenu from '../components/NavMenu.vue';
+import Modal from '../components/Modal.vue';
+import TableauDeBord from '../components/TableauDeBord.vue';
+
+// Existing components
+import fraisFixe from '../components/fraisFixe.vue';
+import ecolageCantine from '../components/ecolageCantine.vue';
+import listeR from '../components/listeR.vue';
+import stageR from '../components/stageR.vue';
+import Post_form from '../components/post_formation.vue';
+import absR from '../components/absR.vue';
+import promR from '../components/promotionR.vue';
+import filR from '../components/filiereR.vue';
+import canR from '../components/canR.vue';
+import can_noteR from '../components/can_noteR.vue';
+import compteR from './compteR.vue';
+import suivi_pai from '../components/suiviR.vue';
+
+export default {
+        name: 'homePage',
+        components: {
+        NavMenu,
+        Modal,
+        TableauDeBord,
+        fraisFixe,
+        ecolageCantine,
+        listeR,
+        stageR,
+        Post_form,
+        absR,
+        promR,
+        filR,
+        canR,
+        can_noteR,
+        compteR,
+        suivi_pai,
+        },
+
+        data() {
+        return {
+        // UI State
+        titre_contenu: 'BIENVENUE',
+        vide: true,
+        contenu: false,
+        user: '',
+        selectedMenu: '',
+
+        // Permissions
+        permissions: {
+        finance: { on: false, off: true },
+        eleves: { on: false, off: true },
+        candidats: { on: false, off: true },
+        },
+
+        // Data
+        promotion: [],
+        liste_prom_candidat: [],
+        prom: '',
+        sprom_can: '',
+        prom_name: '',
+        prom_name_can: '',
+        tdb_prom: '',
+        tdb_prom_can: '',
+        annee: '',
+        annee_supr: '',
+        text_can: '',
+        err_can: '',
+
+        // View States
+        views: {
+        frais: false,
+        eco: false,
+        suivi: false,
+        liste_eleve: false,
+        stage: false,
+        post: false,
+        abs: false,
+        prom: false,
+        fil: false,
+        can: false,
+        can_note: false,
+        compte: false,
+        tdb_can: false,
+        tdb_ele: false,
+        tdb_fin: false,
+        },
+
+        // Tableau de Bord Data
+        candidateStats: {
+        nbr_can: 0,
+        nbr_mal: 0,
+        nbr_fem: 0,
+        taux_mal: 0,
+        taux_fem: 0,
+        nbr_can_fil: 0,
+        taux_min_mal: 0,
+        taux_min_fem: 0,
+        nbr_age: [],
+        },
+        studentStats: {
+        nbr_ele: 0,
+        nbr_mal: 0,
+        nbr_fem: 0,
+        taux_mal: 0,
+        taux_fem: 0,
+        nbr_ele_fil: 0,
+        taux_min_mal: 0,
+        taux_min_fem: 0,
+        nbr_age: [],
+        niveau_label: [],
+        niveau_nbr: [],
+        diplome_label: [],
+        diplome_nbr: [],
+        nbr_en_cours: 0,
+        nbr_diplome: 0,
+        nbr_abandon: 0,
+        nbr_renvoi: 0,
+        },
+        financeStats: {
+        droit_done: 0,
+        carnet_done: 0,
+        assurance_done: 0,
+        parents_done: 0,
+        tranche1_done: 0,
+        tranche2_done: 0,
+        tranche3_done: 0,
+        carnet2_done: 0,
+        assurance2_done: 0,
+        bourse: 0,
+        e1: Array(12).fill(0),
+        c1: Array(12).fill(0),
+        e2: Array(12).fill(0),
+        c2: Array(12).fill(0),
+        },
+
+        // Charts
+        charts: {
+        com_can_nbr: null,
+        graph_age: null,
+        com_ele_nbr: null,
+        graph_age_ele: null,
+        statue: null,
+        niveau: null,
+        diplome: null,
+        frais_fixe: null,
+        eco1: null,
+        can1: null,
+        eco2: null,
+        can2: null,
+        },
+
+        fils: [],
+        fil_can: '',
+        fil_ele: '',
+        };
+        },
+
+        computed: {
+        menuItems() {
+        return [
+        {
+                title: 'Tableau de bord',
+                icon: 'icon-dashboard',
+                subItems: [
+                {
+                title: 'Finance',
+                modal: 'mdl-ask-tdb-finance',
+                condition: this.permissions.finance.on,
+                view: 'tdb_fin',
+                },
+                {
+                title: 'Eleves',
+                modal: 'mdl-ask-tdb-eleve',
+                condition: this.permissions.finance.on,
+                view: 'tdb_ele',
+                },
+                {
+                title: 'Candidats',
+                modal: 'mdl-ask-tdb-candidats',
+                condition: this.permissions.finance.on,
+                view: 'tdb_can',
+                },
+                ],
+        },
+        {
+                title: 'Finance',
+                icon: 'icon-finance',
+                subItems: [
+                {
+                title: 'Frais fixe',
+                modal: 'mdl-ask-finance-frais-fixe',
+                condition: this.permissions.finance.on,
+                view: 'frais',
+                modalOff: 'plus',
+                },
+                {
+                title: 'Ecolages et cantines',
+                modal: 'mdl-ask-finance-ecolage',
+                condition: this.permissions.finance.on,
+                view: 'eco',
+                modalOff: 'plus',
+                },
+                {
+                title: 'Suivi paiement',
+                action: 'open_suivi_paiement',
+                condition: this.permissions.finance.on,
+                view: 'suivi',
+                modalOff: 'plus',
+                },
+                ],
+        },
+        {
+                title: 'Eleves',
+                icon: 'icon-eleve',
+                subItems: [
+                {
+                title: 'Listes',
+                modal: 'mdl-ask-prom-liste-eleve',
+                condition: this.permissions.eleves.on,
+                view: 'liste_eleve',
+                modalOff: 'plus',
+                },
+                {
+                title: 'Absence et retard',
+                action: 'open_absence_retard',
+                condition: this.permissions.eleves.on,
+                view: 'abs',
+                modalOff: 'plus',
+                },
+                {
+                title: 'Stage',
+                modal: 'mdl-ask-prom-stage-eleve',
+                condition: this.permissions.eleves.on,
+                view: 'stage',
+                modalOff: 'plus',
+                },
+                {
+                title: 'Post formation',
+                modal: 'mdl-ask-prom-post-eleve',
+                condition: this.permissions.eleves.on,
+                view: 'post',
+                modalOff: 'plus',
+                },
+                {
+                title: 'Promotion',
+                action: 'open_promotion_eleve',
+                condition: this.permissions.eleves.on,
+                view: 'prom',
+                modalOff: 'plus',
+                },
+                {
+                title: 'Filière',
+                action: 'open_filiere',
+                condition: this.permissions.eleves.on,
+                view: 'fil',
+                modalOff: 'plus',
+                },
+                ],
+        },
+        {
+                title: 'Candidats',
+                icon: 'icon-candidat',
+                subItems: [
+                {
+                title: 'Listes',
+                modal: 'mdl-ask-candidat-liste',
+                condition: this.permissions.candidats.on,
+                view: 'can',
+                modalOff: 'plus',
+                isCandidate: true,
+                },
+                {
+                title: 'Note',
+                modal: 'mdl-ask-candidat-note',
+                condition: this.permissions.candidats.on,
+                view: 'can_note',
+                modalOff: 'plus',
+                isCandidate: true,
+                },
+                {
+                title: 'Année concours',
+                modal: 'mdl-ask-candidat-annee-concours',
+                condition: this.permissions.candidats.on,
+                isCandidate: true,
+                },
+                ],
+        },
+        {
+                title: 'Compte',
+                icon: 'icon-compte',
+                action: 'open_compte',
+                view: 'compte',
+        },
+        ];
+        },
+
+        modals() {
+        return [
+        { id: 'mdl-ask-tdb-candidats', title: 'TABLEAU DE BORD POUR LES CANDIDATS', action: 'open_tdb_candidats', isCandidate: true },
+        { id: 'mdl-ask-tdb-finance', title: 'TABLEAU DE BORD POUR FINANCE', action: 'open_tdb_fin' },
+        { id: 'mdl-ask-tdb-eleve', title: 'TABLEAU DE BORD POUR LES ETUDIANTS', action: 'open_tdb_eleve' },
+        { id: 'mdl-ask-finance-frais-fixe', title: 'FRAIS FIXES', action: 'open_frais_fixe' },
+        { id: 'mdl-ask-finance-ecolage', title: 'ECOLAGES ET CANTINES', action: 'open_ecolage' },
+        { id: 'mdl-ask-prom-liste-eleve', title: 'LISTE DES ELEVES', action: 'open_liste_eleve' },
+        { id: 'mdl-ask-prom-stage-eleve', title: 'STAGE DES ELEVES', action: 'open_stage' },
+        { id: 'mdl-ask-prom-post-eleve', title: 'POST FORMATION DES ELEVES', action: 'open_post' },
+        { id: 'mdl-ask-candidat-liste', title: 'LISTE CANDIDATS', action: 'open_candidat_liste', isCandidate: true },
+        { id: 'mdl-ask-candidat-note', title: 'NOTE CANDIDATS', action: 'open_candidat_note', isCandidate: true },
+        {
+                id: 'mdl-ask-candidat-annee-concours',
+                title: 'ANNEE CONCOURS',
+                isYearContest: true,
+                isCandidate: true,
+        },
+        { id: 'plus', title: 'NOTIFICATION', isError: true },
+        ];
+        },
+
+        currentComponent() {
+        const componentMap = {
+        frais: 'fraisFixe',
+        eco: 'ecolageCantine',
+        suivi: 'suivi_pai',
+        liste_eleve: 'listeR',
+        stage: 'stageR',
+        post: 'Post_form',
+        abs: 'absR',
+        prom: 'promR',
+        fil: 'filR',
+        can: 'canR',
+        can_note: 'can_noteR',
+        compte: 'compteR',
+        };
+        return Object.keys(this.views).find((key) => this.views[key] && componentMap[key]) || null;
+        },
+        },
+
+        methods: {
+        // Navigation
+        handleMenuSelect({ action, view, modal }) {
+        if (action) {
+        this[action]();
+        } else if (modal) {
+        // Modal handling is managed by Bootstrap's data-toggle
+        this.selectedMenu = view;
+        }
+        },
+
+        // View Management
+        setView(view, title) {
+        this.vide = false;
+        this.contenu = true;
+        this.titre_contenu = title;
+        Object.keys(this.views).forEach((key) => {
+        this.views[key] = key === view;
+        });
+        this.selectedMenu = view;
+        },
+
+        async fetchPromotionData(promId, isCandidate = false) {
+        const endpoint = isCandidate ? 'can_prom2.php' : 'fraisf.php';
+        try {
+        const response = await axios.post(`${chemin}${endpoint}`, { prom: promId });
+        const { prom_name } = response.data;
+        const storageKey = isCandidate ? 'prom_name_can' : 'prom_name';
+        const idKey = isCandidate ? 'prom_id_can' : 'prom_id';
+        this[isCandidate ? 'prom_name_can' : 'prom_name'] = prom_name;
+        this[isCandidate ? 'tdb_prom_can' : 'tdb_prom'] = prom_name;
+        localStorage.setItem(storageKey, prom_name);
+        localStorage.setItem(idKey, promId);
+        } catch (error) {
+        console.error('Error fetching promotion data:', error);
+        }
+        },
+
+        // View Handlers
+        open_frais_fixe() {
+        this.setView('frais', 'FRAIS FIXES');
+        this.fetchPromotionData(this.prom);
+        },
+
+        open_ecolage() {
+        this.setView('eco', 'ECOLAGES ET CANTINES');
+        this.fetchPromotionData(this.prom);
+        },
+
+        open_suivi_paiement() {
+        this.setView('suivi', 'SUIVI DES PAIEMENTS');
+        },
+
+        open_liste_eleve() {
+        this.setView('liste_eleve', 'INFORMATIONS GENERALES');
+        this.fetchPromotionData(this.prom);
+        },
+
+        open_stage() {
+        this.setView('stage', 'SUIVI DE STAGE');
+        this.fetchPromotionData(this.prom);
+        },
+
+        open_post() {
+        this.setView('post', 'POST FORMATION');
+        this.fetchPromotionData(this.prom);
+        },
+
+        open_absence_retard() {
+        this.setView('abs', 'ABSENCES ET RETARDS');
+        },
+
+        open_promotion_eleve() {
+        this.setView('prom', 'GESTION DES PROMOTIONS');
+        },
+
+        open_filiere() {
+        this.setView('fil', 'GESTION DES FILIERES');
+        },
+
+        open_candidat_liste() {
+        this.setView('can', 'LISTE DES CANDIDATS');
+        this.fetchPromotionData(this.sprom_can, true);
+        },
+
+        open_candidat_note() {
+        this.setView('can_note', 'NOTE DES CANDIDATS');
+        this.fetchPromotionData(this.sprom_can, true);
+        },
+
+        open_compte() {
+        this.setView('compte', 'GESTION DE COMPTE');
+        },
+
+        // Tableau de Bord Handlers
+        async open_tdb_candidats() {
+        this.setView('tdb_can', 'TABLEAU DE BORDS DES CANDIDATS');
+        await this.fetchPromotionData(this.sprom_can, true);
+        await this.fetchCandidateStats();
+        await this.fetchFilieres();
+        },
+
+        async open_tdb_eleve() {
+        this.setView('tdb_ele', 'TABLEAU DE BORDS DES ELEVES');
+        await this.fetchPromotionData(this.prom);
+        await this.fetchStudentStats();
+        await this.fetchFilieres();
+        },
+
+        async open_tdb_fin() {
+        this.setView('tdb_fin', 'TABLEAU DE BORDS FINANCE');
+        await this.fetchPromotionData(this.prom);
+        await this.fetchFinanceStats();
+        await this.fetchFilieres();
+        },
+
+        // Data Fetching
+        async fetchCandidateStats() {
+        try {
+        const response = await axios.post(`${chemin}tdb_can.php`, { prom: this.sprom_can });
+        const data = response.data;
+        this.candidateStats = {
+                nbr_can: data.nbr_can,
+                nbr_mal: data.nbr_mal,
+                nbr_fem: data.nbr_fem,
+                taux_mal: data.taux_mal,
+                taux_fem: data.taux_fem,
+                nbr_can_fil: data.nbr_can_fil,
+                taux_min_mal: data.taux_min_mal,
+                taux_min_fem: data.taux_min_fem,
+                nbr_age: data.nbr_age,
+        };
+        this.fil_can = data.nom_fil_min;
+        this.updateCharts('candidate');
+        } catch (error) {
+        console.error('Error fetching candidate stats:', error);
+        }
+        },
+
+        async fetchStudentStats() {
+        try {
+        const response = await axios.post(`${chemin}tdb_ele.php`, { prom: this.prom });
+        const data = response.data;
+        this.studentStats = {
+                nbr_ele: data.nbr_ele,
+                nbr_mal: data.nbr_mal,
+                nbr_fem: data.nbr_fem,
+                taux_mal: data.taux_mal,
+                taux_fem: data.taux_fem,
+                nbr_ele_fil: data.nbr_can_fil,
+                taux_min_mal: data.taux_min_mal,
+                taux_min_fem: data.taux_min_fem,
+                nbr_age: data.nbr_age,
+                niveau_label: data.niveau_label,
+                niveau_nbr: data.niveau_nbr,
+                diplome_label: data.label_diplome,
+                diplome_nbr: data.diplome_nbr,
+                nbr_en_cours: data.nbr_en_cours,
+                nbr_diplome: data.nbr_diplome,
+                nbr_abandon: data.nbr_abandon,
+                nbr_renvoi: data.nbr_renvoi,
+        };
+        this.fil_ele = data.nom_fil_min;
+        this.updateCharts('student');
+        } catch (error) {
+        console.error('Error fetching student stats:', error);
+        }
+        },
+
+        async fetchFinanceStats() {
+        try {
+        const response = await axios.post(`${chemin}tdb_ele.php`, { prom: this.prom });
+        const data = response.data;
+        this.financeStats = {
+                droit_done: data.droit_done,
+                carnet_done: data.carnet_done,
+                assurance_done: data.assurance_done,
+                parents_done: data.parents_done,
+                tranche1_done: data.tranche1_done,
+                tranche2_done: data.tranche2_done,
+                tranche3_done: data.tranche3_done,
+                carnet2_done: data.carnet2_done,
+                assurance2_done: data.assurance2_done,
+                bourse: data.bourse,
+                e1: [
+                data.e1janvier, data.e1fevrier, data.e1mars, data.e1avril, data.e1mai,
+                data.e1juin, data.e1juillet, data.e1aout, data.e1septembre, data.e1octobre,
+                data.e1novembre, data.e1decembre,
+                ],
+                c1: [
+                data.c1janvier, data.c1fevrier, data.c1mars, data.c1avril, data.c1mai,
+                data.c1juin, data.c1juillet, data.c1aout, data.c1septembre, data.c1octobre,
+                data.c1novembre, data.c1decembre,
+                ],
+                e2: [
+                data.e2janvier, data.e2fevrier, data.e2mars, data.e2avril, data.e2mai,
+                data.e2juin, data.e2juillet, data.e2aout, data.e2septembre, data.e2octobre,
+                data.e2novembre, data.e2decembre,
+                ],
+                c2: [
+                data.c2janvier, data.c2fevrier, data.c2mars, data.c2avril, data.c2mai,
+                data.c2juin, data.c2juillet, data.c2aout, data.c2septembre, data.c2octobre,
+                data.c2novembre, data.c2decembre,
+                ],
+        };
+        this.updateCharts('finance');
+        } catch (error) {
+        console.error('Error fetching finance stats:', error);
+        }
+        },
+
+        async fetchFilieres() {
+        try {
+        const response = await axios.post(`${chemin}form_liste_fil.php`);
+        this.fils = response.data.item;
+        } catch (error) {
+        console.error('Error fetching filieres:', error);
+        }
+        },
+
+        async fetchPromotions() {
+        try {
+        const response = await axios.get(`${chemin}promotion.php`);
+        this.promotion = response.data;
+        } catch (error) {
+        console.error('Error fetching promotions:', error);
+        }
+        },
+
+        async fetchCandidatePromotions() {
+        try {
+        const response = await axios.get(`${chemin}can_prom.php`);
+        this.liste_prom_candidat = response.data;
+        } catch (error) {
+        console.error('Error fetching candidate promotions:', error);
+        }
+        },
+
+        // Chart Updates
+        updateCharts(type) {
+        if (type === 'candidate') {
+        this.createChart('com_can_nbr', 'doughnut', {
+                labels: ['Garçon', 'Fille'],
+                data: [this.candidateStats.taux_min_mal, this.candidateStats.taux_min_fem],
+                backgroundColor: ['rgba(0, 91, 134)', 'red'],
+        });
+        this.createChart('graph_age', 'line', {
+                labels: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+                data: this.candidateStats.nbr_age,
+                backgroundColor: 'blue',
+                borderColor: 'rgba(0, 91, 134, 0.67)',
+        });
+        } else if (type === 'student') {
+        this.createChart('com  com_ele_nbr', 'doughnut', {
+                labels: ['Garçon', 'Fille'],
+                data: [this.studentStats.taux_min_mal, this.studentStats.taux_min_fem],
+                backgroundColor: ['rgba(0, 91, 134)', 'red'],
+        });
+        this.createChart('graph_age_ele', 'line', {
+                labels: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+                data: this.studentStats.nbr_age,
+                backgroundColor: 'blue',
+                borderColor: 'rgba(0, 91, 134, 0.67)',
+        });
+        this.createChart('statue', 'pie', {
+                labels: [
+                `En cours: ${this.studentStats.nbr_en_cours}`,
+                `Diplômé: ${this.studentStats.nbr_diplome}`,
+                `Abandon: ${this.studentStats.nbr_abandon}`,
+                `Renvoi: ${this.studentStats.nbr_renvoi}`,
+                ],
+                data: [
+                this.studentStats.nbr_en_cours,
+                this.studentStats.nbr_diplome,
+                this.studentStats.nbr_abandon,
+                this.studentStats.nbr_renvoi,
+                ],
+                backgroundColor: ['#1e7145', '#2b5797', '#e8c3b9', 'red'],
+        });
+        this.createChart('niveau', 'bar', {
+                labels: this.studentStats.niveau_label,
+                data: this.studentStats.niveau_nbr,
+                backgroundColor: ['#1e7145', '#2b5797', '#e8c3b9', 'red'],
+        });
+        this.createChart('diplome', 'bar', {
+                labels: this.studentStats.diplome_label,
+                data: this.studentStats.diplome_nbr,
+                backgroundColor: ['#ffce00', '#6e0b14', '#e8c3b9', 'red'],
+        });
+        } else if (type === 'finance') {
+        this.createChart('frais_fixe', 'doughnut', {
+                labels: [
+                "Droit d'inscription",
+                "Carnet de correspondance 1",
+                "Assurances 1",
+                "Ecole des parents",
+                "1ère Tranche",
+                "2ème Tranche",
+                "3ème Tranche",
+                "Carnet de correspondance 2",
+                "Assurances 2",
+                ],
+                data: [
+                this.financeStats.droit_done,
+                this.financeStats.carnet_done,
+                this.financeStats.assurance_done,
+                this.financeStats.parents_done,
+                this.financeStats.tranche1_done,
+                this.financeStats.tranche2_done,
+                this.financeStats.tranche3_done,
+                this.financeStats.carnet2_done,
+                this.financeStats.assurance2_done,
+                ],
+                backgroundColor: [
+                '#1e7145', '#2b5797', '#e8c3b9', '#003f5c', '#7a5195',
+                '#bc5090', '#ffa600', '#ff764a', '#ffec59',
+                ],
+        });
+        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        const colors = [
+                '#1e7145', '#2b5797', '#e8c3b9', '#003f5c', '#7a5195',
+                '#bc5090', '#ffa600', '#ff764a', '#ffec59', '#00cfac',
+                '#e7c582', '#74737a',
+        ];
+        this.createChart('eco1', 'doughnut', {
+                labels: months,
+                data: this.financeStats.e1,
+                backgroundColor: colors,
+        });
+        this.createChart('can1', 'doughnut', {
+                labels: months,
+                data: this.financeStats.c1,
+                backgroundColor: colors,
+        });
+        this.createChart('eco2', 'doughnut', {
+                labels: months,
+                data: this.financeStats.e2,
+                backgroundColor: colors,
+        });
+        this.createChart('can2', 'doughnut', {
+                labels: months,
+                data: this.financeStats.c2,
+                backgroundColor: colors,
+        });
+        }
+        },
+
+        createChart(id, type, { labels, data, backgroundColor, borderColor }) {
+        const ctx = document.getElementById(id)?.getContext('2d');
+        if (!ctx) return;
+        if (this.charts[id]) {
+        this.charts[id].destroy();
+        }
+        this.charts[id] = new Chart(ctx, {
+        type,
+        data: {
+                labels,
+                datasets: [{
+                label: type === 'line' ? 'Nombre' : undefined,
+                data,
+                backgroundColor,
+                borderColor,
+                }],
+        },
+        options: type === 'line' ? {
+                scales: {
+                x: {
+                title: {
+                display: true,
+                text: 'Âge',
+                },
+                },
+                },
+        } : {},
+        });
+        },
+
+        // Modal Handlers
+        handleModalConfirm(action) {
+        this[action]();
+        },
+
+        async addContestYear(year) {
+        try {
+        const response = await axios.post(`${chemin}can_annee_ajout.php`, { annee: year });
+        this.text_can = response.data.ret;
+        this.err_can = response.data.err;
+        } catch (error) {
+        console.error('Error adding contest year:', error);
+        }
+        },
+
+        async deleteContestYear(id) {
+        try {
+        await axios.post(`${chemin}can_annee_supr.php`, { id });
+        } catch (error) {
+        console.error('Error deleting contest year:', error);
+        }
+        },
+
+        // Filiere Updates
+        async updateCandidateFiliere(filiere) {
+        this.fil_can = filiere;
+        try {
+        const response = await axios.post(`${chemin}tdb_can2.php`, {
+                prom: this.sprom_can,
+                fil_can: this.fil_can,
+        });
+        const data = response.data;
+        this.candidateStats.nbr_can_fil = data.nbr_can_fil;
+        this.candidateStats.taux_min_mal = data.taux_min_mal;
+        this.candidateStats.taux_min_fem = data.taux_min_fem;
+        this.updateCharts('candidate');
+        } catch (error) {
+        console.error('Error updating candidate filiere:', error);
+        }
+        },
+
+        async updateStudentFiliere(filiere) {
+        this.fil_ele = filiere;
+        try {
+        const response = await axios.post(`${chemin}tdb_ele2.php`, {
+                prom: this.prom,
+                fil_ele: this.fil_ele,
+        });
+        const data = response.data;
+        this.studentStats.nbr_ele_fil = data.nbr_ele_fil;
+        this.studentStats.taux_min_mal = data.taux_min_mal;
+        this.studentStats.taux_min_fem = data.taux_min_fem;
+        this.updateCharts('student');
+        } catch (error) {
+        console.error('Error updating student filiere:', error);
+        }
+        },
+
+        // Authentication
+        logout() {
+        localStorage.removeItem('user');
+        this.$router.push('/');
+        },
+        },
+
+        mounted() {
+        this.user = localStorage.getItem('user');
+        this.permissions.finance.on = localStorage.getItem('fin') === '1';
+        this.permissions.finance.off = !this.permissions.finance.on;
+        this.permissions.eleves.on = localStorage.getItem('ele') === '1';
+        this.permissions.eleves.off = !this.permissions.eleves.on;
+        this.permissions.candidats.on = localStorage.getItem('can') === '1';
+        this.permissions.candidats.off = !this.permissions.candidats.on;
+        this.fetchPromotions();
+        this.fetchCandidatePromotions();
+        },
+};
+</script>
+
+<style>
+@import '../css/dashboard.css';
+@import '../css/navbar-menu.css';
+@import '../css/_ref_icon.css';
+@import '../css/_common_element.css';
+@import '../css/_modal.css';
+</style>

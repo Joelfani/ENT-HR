@@ -1,0 +1,102 @@
+.icon-dashboard
+{
+    background-image: url(/public/assets/icons/stat.png);
+}
+
+.icon-finance
+{
+    background-image: url(/public/assets/icons/frais.png);
+}
+
+.icon-finance-frais-fixe
+{
+    background-image: url(/public/assets/icons/frais-de-scolarite.png);
+}
+
+.icon-finance-ecolage
+{
+    background-image: url(/public/assets/icons/money.png);
+}
+.icon-frais-suivi
+{
+    background-image: url(/public/assets/icons/follow.png);
+}
+.icon-eleve
+{
+    background-image: url(/public/assets/icons/eleve.png);
+}
+
+.icon-stage
+{
+    background-image: url(/public/assets/icons/chef.png);
+}
+
+.icon-abs-rtd
+{
+    background-image: url(/public/assets/icons/absent.png);
+    
+}
+
+.icon-post{
+    background-image: url(/public/assets/icons/toq.png);
+}
+
+
+
+.icon-prom{
+    background-image: url(/public/assets/icons/magistrate.png);
+}
+
+.icon-filiere
+{
+    background-image: url(/public/assets/icons/post-it.png);
+}
+
+.icon-candidat
+{
+    background-image: url(/public/assets/icons/candidats.png);
+}
+
+.icon-note
+{
+    background-image: url(/public/assets/icons/copy-writing.png);
+}
+
+.icon-annee
+{
+    background-image: url(/public/assets/icons/calendrier.png);
+}
+.icon-compte
+{
+    background-image: url(/public/assets/icons/compte.png);
+}
+
+.icon-promotion
+{
+    background-image: url(/public/assets/icons/promotion.png);
+}
+.icon-liste
+{
+    background-image: url(/public/assets/icons/liste.png);
+}
+
+.icon-complet
+{
+    background-image: url(/public/assets/icons/ok.png);
+}
+
+.icon-incomplet
+{
+    background-image: url(/public/assets/icons/non.png);
+}
+
+.icon-semi-complet
+{
+    background-image: url(/public/assets/icons/peu.png);
+    
+}
+
+.icon-modifier
+{
+    background-image: url(/public/assets/icons/mod.png);
+}

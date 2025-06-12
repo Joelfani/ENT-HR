@@ -1,0 +1,152 @@
+
+.view_board
+{
+    margin-top: 90px;
+    padding-left: 260px;
+    margin-bottom: 20px;
+}
+
+ /*---HEADER TITRE--*/
+
+.parent_row
+{
+    margin-top: 15px;
+}
+
+.title_head
+{
+    font-size: 20px;
+    color: gray;
+}
+
+.box_cart
+{
+    background-color: white;
+    width: 100%;
+    padding: 15px;
+}
+
+.box_chart_min
+{
+    height: 120px;
+    position: relative;
+    text-align: center;
+}
+
+.box_chart_max
+{
+   
+    position: relative;
+}
+
+.box_chart_mid
+{
+    background-color: aqua;
+}
+
+.box_chart_pie_donut
+{
+    height: 450px;
+    position: relative;
+}
+
+
+/*---NUMBER--*/
+
+.title_number
+{
+    font-size: 24px;
+    font-weight: 500;
+    
+}
+
+.label_number
+{
+    font-size: 11px;
+    color: gray;
+}
+
+.number_stat
+{
+    font-size: 30px;
+    text-align: center;
+
+}
+
+
+
+
+/*-----CONTAINER-----*/
+.donut_chart_container
+{
+    padding: 15px;
+    height: auto;
+    position: relative;
+}
+
+
+.detail_chart_donut
+{
+    height: auto;
+    position: relative;
+}
+.canvas_chart
+{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+
+.title_description
+{
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0;
+    text-align: center;
+}
+
+.description_name
+{
+    color: gray;
+    font-size: 16px;
+    font-weight: 300;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 7px;
+}s
+
+.description_number
+{
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 0;
+}
+
+
+.select-promotion
+{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.select-promotion select
+{
+    width: 100%;
+    font-size: 13px;
+}
+
+.first-view
+{
+    height: calc(94vh - 90px);
+    background-image: url(/public/assets/logo.png);
+    background-size: 500px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
