@@ -3,15 +3,15 @@
         <table class="table table-striped">
             <thead class="table-header">
             <tr>
-                <th v-for="col in columns" :key="col.key">
+                <th  v-for="col in columns" :key="col.key" :style="col.style? col.style : ''">
                 {{ col.label }}
                 </th>
-                <th v-if="showActions">Actions</th>
+                <th v-if="showActions" style="min-width : 250px; text-align: center;">Actions</th>
             </tr>
             </thead>
             <tbody>
             <tr v-for="item in rows" :key="item.id">
-                <td v-for="col in columns" :key="col.key"> 
+                <td  v-for="col in columns" :key="col.key" :class="col.etat? 'td-fixed':''"> 
                 {{ item[col.key] }}
                 </td>
                 <td v-if="showActions">

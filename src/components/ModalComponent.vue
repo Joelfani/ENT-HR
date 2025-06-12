@@ -8,7 +8,10 @@
                             <h3 class="section_name">{{ title }}</h3>
                         </div>
                         <hr />
-                        <slot></slot>
+                        <div class="info">
+                            <slot></slot>
+                        </div>
+                        
                     </section>
                 </div>
             </div>

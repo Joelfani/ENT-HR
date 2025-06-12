@@ -1,5 +1,5 @@
 <template>
-<div>
+<div style="text-align: center;">
     <a v-if="userStore.edit && !modalcompte" data-toggle="modal" :data-target="'#mod' + id" class="btn btn-primary" @click="recovery_data"> Modifier </a>
 
     <a v-if="userStore.edit && modalcompte" data-toggle="modal" :data-target="'#mod' + id" class="btn btn-primary"> Modifier </a>

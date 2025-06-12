@@ -68,7 +68,7 @@ input {
     color: white;
 }
 
-.table tbody tr th
+.table tbody tr .td-fixed
 {
     position: sticky;
     left: 0px;
