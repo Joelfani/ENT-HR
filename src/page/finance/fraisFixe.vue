@@ -315,7 +315,7 @@
                     montant: this.montant == '' ? null : this.montant,
                 })
                 .select('id')
-                .single();
+                .maybeSingle();
 
                 if (error) throw error;
 
