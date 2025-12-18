@@ -290,6 +290,26 @@
                 </div>
 
             </div>
+            <br>
+            <div v-if="chartsReady" class="chart-card">
+                <h3 class="chart-title">
+                    <svg class="inline-icon" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6M7 20h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Lieux de stage des élèves
+                </h3>
+
+                <p class="chart-subtitle">
+                    Entreprises ayant accueilli des stagiaires
+                </p>
+
+                <div class="chart-container">
+                    <canvas ref="stageChart"></canvas>
+                </div>
+            </div>
+
             <!-- Aucun DATA -->
             <div v-else-if="!isLoadingData && stats.totalCandidats === 0" class="loader-container">
                 <p class="loader-text">Aucune donnée disponible pour cette promotion.</p>
@@ -366,6 +386,8 @@ export default {
             variationMotifAbandon: [],
             variationHebergement: [],
             variationSituation: [],
+            variationStage: [],
+
             absenceRetardParFiliere: {},
             genderChartInstance: null,
             ageChartInstance: null,
@@ -380,6 +402,7 @@ export default {
             situationChartInstance: null,
             absenceChartInstance: null,
             retardChartInstance: null,
+            stageChartInstance: null,
         }
     },
     computed: {
@@ -492,6 +515,7 @@ export default {
                 await this.loadAbsenceRetardStats();
                 this.calculateParticipationExam(candidats);
                 this.calculateParticipationDelf(candidats);
+                this.calculateStageDistribution(candidats);
 
                 // Créer les graphiques après un court délai
                 await this.$nextTick();
@@ -509,6 +533,7 @@ export default {
                         this.createSituationChart();
                         this.createAbsenceChart();
                         this.createRetardChart();
+                        this.createStageChart();
                     });
                 }, 100);
                 
@@ -902,6 +927,45 @@ export default {
                     ? Math.round((nombre / total) * 100)
                     : 0
             };
+        },
+
+        calculateStageDistribution(candidats) {
+            const stageMap = {}; 
+            // structure :
+            // {
+            //   "Entreprise A": Set(ele_id),
+            //   "Entreprise B": Set(ele_id)
+            // }
+
+            candidats.forEach(c => {
+                const eleId = c.id; // ou c.ele_id selon ta table
+
+                const stages = [
+                    c.stage1,
+                    c.stage2,
+                    c.stage3,
+                    c.stage4,
+                    c.stage5,
+                    c.stage6
+                ];
+
+                stages.forEach(stage => {
+                    if (stage && stage.trim() !== '') {
+                        const entreprise = stage.trim();
+
+                        if (!stageMap[entreprise]) {
+                            stageMap[entreprise] = new Set();
+                        }
+
+                        stageMap[entreprise].add(eleId);
+                    }
+                });
+            });
+
+            this.variationStage = Object.keys(stageMap).map(entreprise => ({
+                entreprise,
+                nombre: stageMap[entreprise].size
+            }));
         },
 
         //gestion des chart
@@ -1299,6 +1363,53 @@ export default {
             });
         },
 
+        createStageChart() {
+            if (!this.$refs.stageChart || this.variationStage.length === 0) return;
+
+            if (this.stageChartInstance) {
+                this.stageChartInstance.destroy();
+            }
+
+            const ctx = this.$refs.stageChart.getContext('2d');
+
+            this.stageChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: this.variationStage.map(s => s.entreprise),
+                    datasets: [{
+                        label: "Nombre d'élèves en stage",
+                        data: this.variationStage.map(s => s.nombre),
+                        backgroundColor: '#0ea5e9',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            padding: 12
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        },
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        },
+
         destroyCharts() {
             const charts = [
                 'genderChartInstance',
@@ -1310,7 +1421,8 @@ export default {
                 'hebergementChartInstance',
                 'situationChartInstance',
                 'absenceChartInstance',
-                'retardChartInstance'
+                'retardChartInstance',
+                'stageChartInstance'
             ];
             
             charts.forEach(chartName => {
