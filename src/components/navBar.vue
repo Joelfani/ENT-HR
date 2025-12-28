@@ -64,7 +64,7 @@
                                     data-toggle="modal"
                                     :data-target="userStore[subItem.acces] ? '#'+subItem.modal : '#UNACCESS'"
                                     :title="subItem.title"
-                                    @click="changeClass(subItem.view)">
+                                    @click="recoveryLastUpdate(subItem.view,subItem.maj ? subItem.maj : 'none')">
                                     <div :class="`sub_box centre ${subItem.icon || menu.icon}`"></div>
                                     {{ subItem.title}}
                                 </a>
@@ -91,6 +91,7 @@
                 v-if="subItem.modal"
                 :id="subItem.modal"
                 :title="subItem.modal_title"
+                :mini_title="last_update ? 'Dernière mise à jour : ' + last_update : null"
                 >
                 <div>
                     <label for="">Selection de la promotion</label>
@@ -152,6 +153,7 @@ export default{
                             modal_title: 'TABLEAU DE BORD POUR LES FINANCES',
                             title_view: 'TABLEAU DE BORD POUR LES FINANCES',
                             view: 'tdb_fin',
+                            maj:'payment',
                             icon: 'icon-finance',
                             acces:'fin'
                             },
@@ -161,6 +163,7 @@ export default{
                             modal_title: 'TABLEAU DE BORD POUR LES ELEVES',
                             title_view: 'TABLEAU DE BORD POUR LES ELEVES',
                             view: 'tdb_ele',
+                            maj:'infoc',
                             icon: 'icon-eleve',
                             acces:'ele'
                             },
@@ -170,6 +173,7 @@ export default{
                             modal_title: 'TABLEAU DE BORD POUR LES CANDIDATS',
                             title_view: 'TABLEAU DE BORD POUR LES CANDIDATS',
                             view: 'tdb_can',
+                            maj:'infoc',
                             icon: 'icon-candidat',
                             acces:'can'
                             },
@@ -325,6 +329,7 @@ export default{
             selected_prom: null,
             selected_annee: null,
             promotions: [],
+            last_update: null,
         }
     },
     computed: {
@@ -344,6 +349,7 @@ export default{
                 this.titre_contenu = title.toUpperCase();
             }
             this.selectProm(prom, promCan);
+
         },
         async logout(){
             await supabase.auth.signOut()
@@ -382,6 +388,40 @@ export default{
             } catch (error) {
                 console.error('Erreur lors de la récupération des années:', error);
                 this.annees = [];
+            }
+        },
+        async recoveryLastUpdate(view, maj) {
+            try {
+                this.last_update = null
+                await this.changeClass(view)
+                if(maj === 'none'){
+                    return;
+                }
+                const { data, error } = await supabase
+                    .from('suivi_mouv_ent')
+                    .select('last_update')
+                    .order('id', { ascending: true })
+                    .eq('table_name', maj)
+                    .limit(1);
+
+                if (error) {
+                    console.error('Erreur lors de la récupération de la dernière mise à jour :', error);
+                    return;
+                }
+                
+                const isoDate = data[0].last_update
+
+                const date = new Date(isoDate)
+
+                const formattedDate = date.toLocaleDateString("fr-FR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+                })
+                this.last_update = formattedDate
+                
+            } catch (error) {
+                console.error('Erreur lors de la récupération de la dernière mise à jour :', error);
             }
         },
     },
