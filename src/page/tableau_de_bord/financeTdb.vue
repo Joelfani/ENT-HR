@@ -133,7 +133,9 @@ export default {
         async loadFinanceData() {
             const { data, error } = await supabase
                 .from('payment')
-                .select('ele_id, categorie, annee, mois, montant');
+                .select('ele_id, categorie, annee, mois, montant')
+                .neq('montant', null || 0)
+
 
             if (error) {
                 console.error(error);
