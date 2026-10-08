@@ -245,7 +245,9 @@ export default {
                     .eq('categorie', ctg)
                     .eq('annee', annee)
                     .eq('mois', mois)
-                    .maybeSingle();
+                    .order('id', { ascending: false })
+                    .limit(1)
+                    .single();
                     this.montant = data ? data.montant : 0;
                     this.idPay = data ? data.id : null;
                     if (error) throw error;
